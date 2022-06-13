@@ -133,23 +133,16 @@ class ValueIteration(object):
         """
 
         """ INSERT YOUR CODE HERE"""
-        n_state = self.transitions.shape[0]
-        n_action = self.transitions.shape[1]
         v = self.value_fun.get_values()
-        next_v = np.zeros(n_state)
         if self.policy_type == 'deterministic':
-            for i in range(n_state):
-                v_temp = np.zeros(n_action)
-                for act in range(n_action):
-                    for j in range(n_state):
-                        if self.transitions[i, act, j] != 0:
-                            v_temp[act] += self.transitions[i, act, j]*(self.rewards[i, act, j] + self.discount*v[j])
-                        else:
-                            continue
-                next_v[i] = np.max(v_temp)
+            Q = (self.transitions * (self.rewards + self.discount*v)).sum(axis=2)
+            next_v = Q.max(axis=1)
 
         elif self.policy_type == 'max_ent':
-            raise NotImplementedError
+            Q = (self.transitions * (self.rewards + self.discount*v)).sum(axis=2)
+            Q_soft = np.log(np.exp((Q - Q.max(axis=1, keepdims=True))/self.temperature).sum(axis=1))
+            next_v = self.temperature * Q_soft + Q.max(axis=1)
+
             """ Your code ends here"""
         else:
             raise NotImplementedError
@@ -167,23 +160,14 @@ class ValueIteration(object):
         """
 
         """INSERT YOUR CODE HERE"""
-        n_state = self.transitions.shape[0]
-        n_action = self.transitions.shape[1]
         v = self.value_fun.get_values()
-        pi = np.zeros((n_state, n_action))
         if self.policy_type == 'deterministic':
-            for i in range(n_state):
-                v_temp = np.zeros(n_action)
-                for act in range(n_action):
-                    for j in range(n_state):
-                        if self.transitions[i, act, j] != 0:
-                            v_temp[act] += self.transitions[i, act, j] * (
-                                        self.rewards[i, act, j] + self.discount * v[j])
-                        else:
-                            continue
-                pi[i][np.argmax(v_temp)] = 1
+            Q = (self.transitions * (self.rewards + self.discount * v)).sum(axis=2)
+            pi = Q.argmax(axis=1)
         elif self.policy_type == 'max_ent':
-            raise NotImplementedError
+            Q = (self.transitions * (self.rewards + self.discount*v)).sum(axis=2)
+            pi_unnorm = np.exp((Q-Q.max(axis=1, keepdims=True))/self.temperature) + self.eps
+            pi = pi_unnorm/pi_unnorm.sum(axis=1, keepdims=True)
             """ Your code ends here"""
         else:
             raise NotImplementedError
