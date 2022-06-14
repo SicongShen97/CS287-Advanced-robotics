@@ -41,7 +41,13 @@ class LookAheadPolicy(object):
         assert isinstance(self.env.action_space, spaces.Discrete)
         act_dim = self.env.action_space.n
         """ INSERT YOUR CODE HERE"""
-        raise NotImplementedError
+        actions = np.tile(np.arange(act_dim), (self.horizon, 1))
+        actions_comb = np.array(np.meshgrid(*actions)).T.reshape(-1, self.horizon)
+
+        returns = self.get_returns(state, actions_comb.T)
+        idx = np.argmax(returns)
+        best_action = actions_comb[idx][0]
+
         return best_action
 
     def get_returns(self, state, actions):
@@ -53,7 +59,15 @@ class LookAheadPolicy(object):
         """
         assert self.env.vectorized
         """ INSERT YOUR CODE HERE"""
-        raise NotImplementedError
+        n_comb = actions.shape[1]
+        returns = np.zeros(n_comb)
+        states = np.array([state for _ in range(n_comb)])
+        for i in range(self.horizon):
+            self.env.vec_set_state(states)
+            states, rewards, dones, infos = self.env.vec_step(actions[i])
+            returns += self.discount**i*rewards
+        returns += self.discount**self.horizon*self._value_fun.get_values(states)*(1-dones)
+
         return returns
 
     def update(self, actions):

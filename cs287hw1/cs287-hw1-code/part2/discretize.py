@@ -40,13 +40,66 @@ class Discretize(DiscretizeWrapper):
         """
         """INSERT YOUR CODE HERE"""
         cont_state = np.expand_dims(cont_state, axis=-1)
+        obs_dim = cont_state.shape[0]
+        n_discret_per_dim = self.state_points.shape[1]
         if self.mode == 'nn':
             idx = np.abs(self.state_points-cont_state).argmin(axis=1)
             states = np.array([self.get_id_from_coordinates(idx)])
             probs = np.array([1])
 
         elif self.mode == 'linear':
-            raise NotImplementedError
+            upper_index = np.argmax(self.state_points > cont_state, axis=1)
+            upper_index[np.sum(self.state_points > cont_state) == 0] = obs_dim
+            lower_index = upper_index - 1
+
+            too_small_i = np.sum(self.state_points < cont_state, axis=1) == 0
+            too_big_i = np.sum(self.state_points > cont_state, axis=1) == 0
+
+            lower_states = self.state_points[np.arange(obs_dim), lower_index]
+            upper_states = self.state_points[np.arange(obs_dim), upper_index]
+
+            lower_p = (upper_states - cont_state[:, 0])/(upper_states - lower_states)
+            upper_p = 1 - lower_p
+
+            comb_index = np.column_stack([lower_index, upper_index])
+            comb_p = np.column_stack([lower_p, upper_p])
+            comb_p[too_small_i] = [0, 1]
+            comb_p[too_big_i] = [1, 0]
+
+            indexs = np.array(np.meshgrid(*comb_index)).T.reshape(-1, obs_dim)
+            ps = np.array(np.meshgrid(*comb_p)).T.reshape(-1, obs_dim)
+
+            states = self.get_id_from_coordinates(indexs)
+            probs = np.prod(ps, axis=1)
+
+
+            # upper_i = np.argmax(self.state_points > cont_state, axis=-1)
+            # lower_i = upper_i - 1
+            #
+            # too_small_i = np.sum(self.state_points < cont_state, axis=-1) == 0
+            # too_large_i = np.sum(self.state_points > cont_state, axis=-1) == 0
+            #
+            # upper_s = np.expand_dims(self.state_points[np.arange(obs_dim),
+            #                                            upper_i], -1)
+            # lower_s = np.expand_dims(self.state_points[np.arange(obs_dim),
+            #                                            lower_i], -1)
+            # upper_p = (cont_state - lower_s) / (upper_s - lower_s)
+            # lower_p = (cont_state - upper_s) / (lower_s - upper_s)
+            #
+            # cs = np.column_stack([lower_i, upper_i])
+            # ps = np.column_stack([lower_p, upper_p])
+            #
+            # ps[too_small_i] = [0, 1]
+            # ps[too_large_i] = [1, 0]
+            #
+            # c_combos = np.array(np.meshgrid(*cs)).T.reshape(-1, obs_dim)
+            # p_combos = np.array(np.meshgrid(*ps)).T.reshape(-1, obs_dim)
+            #
+            # states = self.get_id_from_coordinates(c_combos)
+            # # probs = np.prod(p_combos, axis=1).round(decimals=2).astype(np.float64)
+            # probs = np.prod(p_combos, axis=1)
+
+
             """Your code ends here"""
         else:
             raise NotImplementedError
