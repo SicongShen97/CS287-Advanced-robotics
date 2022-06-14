@@ -41,7 +41,6 @@ class Discretize(DiscretizeWrapper):
         """INSERT YOUR CODE HERE"""
         cont_state = np.expand_dims(cont_state, axis=-1)
         obs_dim = cont_state.shape[0]
-        n_discret_per_dim = self.state_points.shape[1]
         if self.mode == 'nn':
             idx = np.abs(self.state_points-cont_state).argmin(axis=1)
             states = np.array([self.get_id_from_coordinates(idx)])

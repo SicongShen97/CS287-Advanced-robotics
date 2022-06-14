@@ -107,7 +107,9 @@ class ContinousStateValueIteration(object):
         """
         states, next_states, rewards, dones = self.get_states_and_transitions()
         """ INSERT YOUR CODE HERE"""
-        raise NotImplementedError
+        Vs = self.value_fun.get_values(states, params=params)
+        next_Vs = self.value_fun.get_values(next_states, params=params)
+        loss = np.linalg.norm(Vs - (rewards + self.discount*next_Vs), 2)
         return loss
 
     def get_states_and_transitions(self):

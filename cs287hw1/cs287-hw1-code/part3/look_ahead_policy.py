@@ -62,10 +62,34 @@ class LookAheadPolicy(BaseLookAheadPolicy):
         num_acts = self.num_acts
         """ INSERT YOUR CODE HERE"""
         if isinstance(self.env.action_space, spaces.Discrete):
-            raise NotImplementedError
-        else:
+            act_dim = self.env.action_space.n
+            actions = np.arange(act_dim)
+            act_seqs = np.random.choice(actions, size=(self.horizon, num_acts))
             for _ in range(self.cem_itrs):
-                raise NotImplementedError
+                act_stack = []
+                returns = self.get_returns(state, act_seqs)
+                idx_elites = returns.argsort()[::-1][:self.num_elites]
+                for i in range(self.horizon):
+                    acts = np.random.choice(act_seqs[i][idx_elites], size=(num_acts,))
+                    act_stack.append(acts)
+                act_seqs = np.array(act_stack)
+            best_action = np.random.choice(act_seqs[0])
+        else:
+            act_low, act_high = self.env.action_space.low, self.env.action_space.high
+            act_dim = act_low.shape[0]
+            act_seqs = np.random.uniform(act_low, act_high, size=(self.horizon, num_acts, act_dim))
+            for _ in range(self.cem_itrs):
+                act_stack = []
+                returns = self.get_returns(state, act_seqs)
+                idx_elites = returns.argsort()[::-1][:self.num_elites]
+                acts_mean = act_seqs[:, idx_elites].mean(axis=1)
+                acts_std = act_seqs[:, idx_elites].std(axis=1)
+                for i in range(self.horizon):
+                    acts = np.random.normal(acts_mean[i], acts_std[i], size=(num_acts, act_dim))
+                    act_stack.append(acts)
+                act_seqs = np.array(act_stack)
+            best_action = acts_mean[0]
+                # raise NotImplementedError
             """ Your code ends here """
         return best_action
 
@@ -78,9 +102,19 @@ class LookAheadPolicy(BaseLookAheadPolicy):
         num_acts = self.num_acts
         """ INSERT YOUR CODE HERE """
         if isinstance(self.env.action_space, spaces.Discrete):
-            raise NotImplementedError
+            act_dim = self.env.action_space.n
+            act_seqs = np.random.choice(np.arange(act_dim), size=(self.horizon, num_acts))
+            returns = self.get_returns(state, act_seqs)
+            best_idx = np.argmax(returns)
+            best_action = act_seqs[0][best_idx]
+            # raise NotImplementedError
         else:
             assert num_acts is not None
-            raise NotImplementedError
+            act_dim = self.env.action_space.low.shape[0]
+            act_seqs = np.random.uniform(self.env.action_space.low, self.env.action_space.high, size=(self.horizon, num_acts, act_dim))
+            returns = self.get_returns(state, act_seqs)
+            best_idx = np.argmax(returns)
+            best_action = act_seqs[0][best_idx]
+            # raise NotImplementedError
 
         return best_action
